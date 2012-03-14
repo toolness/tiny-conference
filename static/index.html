@@ -24,13 +24,17 @@ input#name {
    </div>
 </div>
 <div class="container">
-  <h1>This is Tiny Conference.</h1>
-  <p>Cross your fingers and hope it doesn't suck.</p>
-  <form id="sign-in" class="well form-inline">
-  <input type="text" class="input-small" id="name" placeholder="Your name">
-  <button type="submit" class="btn">Sign in</button>
-  </form>
-  <div id="etherpad"></div>
+  <section id="welcome">
+    <h1>This is Tiny Conference.</h1>
+    <p>Cross your fingers and hope it doesn't suck.</p>
+    <form id="sign-in" class="well form-inline">
+      <input type="text" class="input-small" id="name" placeholder="Your name">
+      <button type="submit" class="btn">Sign in</button>
+    </form>
+  </section>
+  <section id="conference">
+    <div id="etherpad"></div>
+  </section>
 </div>
 <script src="http://static.twilio.com/libs/twiliojs/1.0/twilio.min.js"></script>
 <script src="jquery.min.js"></script>
@@ -58,6 +62,7 @@ $(window).ready(function() {
         $(iframe).attr("frameBorder", "0");
         $(iframe).attr("src", config.etherpad_url + "?showChat=true&userName=" + encodeURIComponent(name));
         $("#etherpad").append(iframe);
+        $("#welcome").slideUp();
       } catch (e) {
         console.error(e);
       }
