@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tiny Conference</title>
+<link rel="stylesheet" href="/bootstrap/css/bootstrap.css">
+<style>
+body {
+  padding-top: 60px;
+}
+
+input#name {
+  width: 25%;
+}
+
+#etherpad iframe {
+  width: 100%;
+  height: 480px;
+}
+</style>
+<div class="navbar navbar-fixed-top">
+   <div class="navbar-inner">
+     <div class="container">
+       <a class="brand" href="#">Tiny Conference</a>
+     </div>
+   </div>
+</div>
+<div class="container">
+  <h1>This is Tiny Conference.</h1>
+  <p>Cross your fingers and hope it doesn't suck.</p>
+  <form id="sign-in" class="well form-inline">
+  <input type="text" class="input-small" id="name" placeholder="Your name">
+  <button type="submit" class="btn">Sign in</button>
+  </form>
+  <div id="etherpad"></div>
+</div>
+<script src="http://static.twilio.com/libs/twiliojs/1.0/twilio.min.js"></script>
+<script src="jquery.min.js"></script>
+<script>
+$(window).ready(function() {
+  jQuery.getJSON("/api/token", function(config) {
+    Twilio.Device.setup(config.token);
+    Twilio.Device.ready(function(device) {
+      console.log("Device ready");
+    });
+    Twilio.Device.error(function(err) {
+      console.log("Device error", err.message);
+    });
+    Twilio.Device.connect(function(conn) {
+      console.log("CONNECT");
+    });
+    Twilio.Device.disconnect(function(conn) {
+      console.log("DISCONNECT");
+    });
+    $("#sign-in").submit(function() {
+      try {
+        var name = $("#name").val();
+        var conn = Twilio.Device.connect({agent: name});
+        var iframe = document.createElement("iframe");
+        $(iframe).attr("frameBorder", "0");
+        $(iframe).attr("src", config.etherpad_url + "?showChat=true&userName=" + encodeURIComponent(name));
+        $("#etherpad").append(iframe);
+      } catch (e) {
+        console.error(e);
+      }
+      return false;
+    });
+  });
+});
+</script>
