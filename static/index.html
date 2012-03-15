@@ -15,6 +15,34 @@ input#name {
   width: 100%;
   height: 480px;
 }
+
+#user-rows {
+  list-style-type: none;
+  margin: 0px;
+  padding: 0px;
+}
+
+#user-rows li.unknown-user {
+  display: none;
+}
+
+#user-rows li {
+  display: inline-block;
+  padding: 8px;
+  margin: 0px;
+  background-color: #f7f7f9;
+  width: 220px;
+  overflow: hidden;
+  -moz-box-sizing:    border-box;
+  -webkit-box-sizing: border-box;
+   box-sizing:        border-box;
+}
+
+#user-rows li .username {
+  display: block;
+  white-space: pre;
+  font-weight: bold;
+}
 </style>
 <div class="navbar navbar-fixed-top">
    <div class="navbar-inner">
@@ -83,6 +111,11 @@ var UserRow = Backbone.View.extend({
   render: function() {
     this.$el.html(this.template(this.model.toJSON()));
     this.$el.find("input.muted")[0].checked = this.model.get("muted");
+    if (this.model.get("username") == "UNKNOWN") {
+      this.$el.addClass("unknown-user");
+    } else {
+      this.$el.removeClass("unknown-user");
+    }
     return this;
   },
   remove: function() {
