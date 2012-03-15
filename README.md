@@ -26,5 +26,13 @@ Now edit `config.js` as necessary, and then run:
 
 Then visit http://localhost:3000/.
 
+## Limitations
+
+So far, there are tons of limitations to this app. Here are a few.
+
+* The app can only currently host one conference call with a single Etherpad back-channel; it can't be used to host multiple simultaneous conferences with different Etherpad back-channels.
+
+* The UI needs to make the user's mute-state more obvious to them.
+
   [Twilio Client API]: http://www.twilio.com/docs/client
   [Etherpad Lite]: https://github.com/Pita/etherpad-lite
