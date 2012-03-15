@@ -24,6 +24,7 @@ input#name {
    </div>
 </div>
 <div class="container">
+  <div id="messages"></div>
   <section id="welcome">
     <h1>This is Tiny Conference.</h1>
     <p>Cross your fingers and hope it doesn't suck.</p>
@@ -36,38 +37,122 @@ input#name {
     <div id="etherpad"></div>
   </section>
 </div>
-<script src="http://static.twilio.com/libs/twiliojs/1.0/twilio.min.js"></script>
+<div id="templates" style="display: none">
+  <div class="alert alert-error fade in">
+    <a class="close" data-dismiss="alert">&times;</a>
+    <strong><span class="message"></span></strong>
+    You should probably reload the page.
+  </div>
+</div>
 <script src="jquery.min.js"></script>
+<script src="/bootstrap/js/bootstrap.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 <script>
+var users = {};
+var socket;
+
+function log(msg) {
+  if (socket)
+    socket.emit('app-log', {message: msg});
+  console.log(msg);
+}
+
+function error(msg) {
+  if (socket)
+    socket.emit('app-error', {message: msg});
+  console.error(msg);
+}
+
+function usernameFromID(id) {
+  if (id in users)
+    return users[id].username;
+  return "UNKNOWN";
+}
+
+function errorAlert(text) {
+  var alert = $("#templates .alert-error").clone()
+    .appendTo("#messages").hide().fadeIn();
+  alert.find(".message").text(text);
+}
+
+var isUnloading = false;
+
+$(window).bind("beforeunload", function() {
+  isUnloading = true;
+});
+
 $(window).ready(function() {
-  jQuery.getJSON("/api/token", function(config) {
+  socket = io.connect('http://localhost:3000');
+  socket.on('disconnect', function() {
+    if (!isUnloading)
+      errorAlert("Connection to server lost.");
+  });
+  socket.on('app-log', function(data) {
+    console.log("from user", usernameFromID(data.id),
+                "(" + data.id + "):", data.message);
+  });
+  socket.on('app-error', function(data) {
+    console.error("from user", usernameFromID(data.id),
+                  "(" + data.id + "):", data.message);
+  });
+  socket.on('user-connected', function(data) {
+    console.log("user-connected", data);
+    users[data.id] = data.value;
+  });
+  socket.on('user-disconnected', function(data) {
+    console.log("user-disconnected", data);
+    delete users[data.id];
+  });
+  socket.on('set-username', function(data) {
+    console.log("set-username", data);
+    users[data.id].username = data.value;
+  });
+  socket.on('set-muted', function(data) {
+    console.log("set-muted", data);
+    users[data.id].muted = data.value;
+  });
+  socket.on('configuration', function(config) {
+    console.log("configuration", config);
+    users = config.users;
     Twilio.Device.setup(config.token);
     Twilio.Device.ready(function(device) {
-      console.log("Device ready");
+      log("twilio device ready");
     });
     Twilio.Device.error(function(err) {
-      console.log("Device error", err.message);
+      errorAlert("A Twilio error has occurred.");
+      error("twilio device error: " + err.message);
     });
     Twilio.Device.connect(function(conn) {
-      console.log("CONNECT");
+      log("twilio device connect");
     });
     Twilio.Device.disconnect(function(conn) {
-      console.log("DISCONNECT");
+      errorAlert("Connection to Twilio lost.");
+      log("twilio device disconnect");
     });
     $("#sign-in").submit(function() {
       try {
         var name = $("#name").val();
+        if (!name)
+          return;
+        users[config.id].username = name;
+        socket.emit('set-username', {value: name});
         var conn = Twilio.Device.connect({agent: name});
         var iframe = document.createElement("iframe");
+        var etherURL = config.etherpad_url + "?showChat=true&userName=" +
+                       encodeURIComponent(name);
         $(iframe).attr("frameBorder", "0");
-        $(iframe).attr("src", config.etherpad_url + "?showChat=true&userName=" + encodeURIComponent(name));
+        $(iframe).attr("src", etherURL);
+        $(iframe).load(function() {
+          log("etherpad frame loaded");
+        });
         $("#etherpad").append(iframe);
         $("#welcome").slideUp();
       } catch (e) {
-        console.error(e);
+        error("sign-in failure: " + e.toString());
       }
       return false;
     });
   });
 });
 </script>
+<script src="http://static.twilio.com/libs/twiliojs/1.0/twilio.min.js"></script>
