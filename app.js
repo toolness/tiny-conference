@@ -64,11 +64,14 @@ io.sockets.on('connection', function(socket) {
     });
   });
   socket.on('set-muted', function(data) {
-    conn.muted = data.value;
-    socket.broadcast.emit('set-muted', {
-      id: conn.id,
-      value: conn.muted
-    });
+    if (data.target in connections) {
+      connections[data.target].muted = data.value;
+      socket.broadcast.emit('set-muted', {
+        source: conn.id,
+        target: data.target,
+        value: data.value
+      });
+    }
   });
   socket.on('app-log', function(data) {
     socket.broadcast.emit('app-log', {
