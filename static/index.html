@@ -48,8 +48,8 @@ input#name {
 <script src="/bootstrap/js/bootstrap.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
-var users = {};
-var socket;
+var config = {users: {}},
+    socket;
 
 function log(msg) {
   if (socket)
@@ -64,7 +64,7 @@ function error(msg) {
 }
 
 function usernameFromID(id) {
-  if (id in users)
+  if (id in config.users)
     return users[id].username;
   return "UNKNOWN";
 }
@@ -75,6 +75,32 @@ function errorAlert(text) {
   alert.find(".message").text(text);
 }
 
+function loadScript(src) {
+  var deferred = jQuery.Deferred();
+  var script = document.createElement("script");
+  script.src = src;
+  script.onload = function() {
+    deferred.resolve();
+  };
+  script.onerror = function() {
+    deferred.reject();
+  };
+  document.body.appendChild(script);
+  return deferred;
+}
+
+function showEtherpad(username) {
+  var iframe = document.createElement("iframe");
+      etherURL = config.etherpad_url + "?showChat=true&userName=" +
+                 encodeURIComponent(username);
+  $(iframe).attr("frameBorder", "0");
+  $(iframe).attr("src", etherURL);
+  $(iframe).load(function() {
+    log("etherpad frame loaded");
+  });
+  $("#etherpad").append(iframe);
+}
+
 var isUnloading = false;
 
 $(window).bind("beforeunload", function() {
@@ -82,6 +108,24 @@ $(window).bind("beforeunload", function() {
 });
 
 $(window).ready(function() {
+  var configReceived = jQuery.Deferred(),
+      twilioDeviceReady = jQuery.Deferred(),
+      twilioLoaded = loadScript("http://static.twilio.com/" + 
+                                "libs/twiliojs/1.0/twilio.min.js");
+  twilioLoaded.fail(function() {
+    errorAlert("Initializing Twilio failed.");
+  });
+  jQuery.when(twilioLoaded, configReceived).done(function() {
+    Twilio.Device.setup(config.token);
+    Twilio.Device.ready(function(device) {
+      log("twilio device ready");
+      twilioDeviceReady.resolve();
+    });
+    Twilio.Device.error(function(err) {
+      errorAlert("A Twilio error has occurred.");
+      error("twilio device error: " + err.message);
+    });
+  });
   socket = io.connect('http://localhost:3000');
   socket.on('disconnect', function() {
     if (!isUnloading)
@@ -97,62 +141,45 @@ $(window).ready(function() {
   });
   socket.on('user-connected', function(data) {
     console.log("user-connected", data);
-    users[data.id] = data.value;
+    config.users[data.id] = data.value;
   });
   socket.on('user-disconnected', function(data) {
     console.log("user-disconnected", data);
-    delete users[data.id];
+    delete config.users[data.id];
   });
   socket.on('set-username', function(data) {
     console.log("set-username", data);
-    users[data.id].username = data.value;
+    config.users[data.id].username = data.value;
   });
   socket.on('set-muted', function(data) {
     console.log("set-muted", data);
-    users[data.id].muted = data.value;
+    config.users[data.id].muted = data.value;
   });
-  socket.on('configuration', function(config) {
-    console.log("configuration", config);
-    users = config.users;
-    Twilio.Device.setup(config.token);
-    Twilio.Device.ready(function(device) {
-      log("twilio device ready");
-    });
-    Twilio.Device.error(function(err) {
-      errorAlert("A Twilio error has occurred.");
-      error("twilio device error: " + err.message);
-    });
-    Twilio.Device.connect(function(conn) {
-      log("twilio device connect");
-    });
-    Twilio.Device.disconnect(function(conn) {
-      errorAlert("Connection to Twilio lost.");
-      log("twilio device disconnect");
-    });
-    $("#sign-in").submit(function() {
-      try {
-        var name = $("#name").val();
-        if (!name)
-          return;
-        users[config.id].username = name;
-        socket.emit('set-username', {value: name});
-        var conn = Twilio.Device.connect({agent: name});
-        var iframe = document.createElement("iframe");
-        var etherURL = config.etherpad_url + "?showChat=true&userName=" +
-                       encodeURIComponent(name);
-        $(iframe).attr("frameBorder", "0");
-        $(iframe).attr("src", etherURL);
-        $(iframe).load(function() {
-          log("etherpad frame loaded");
-        });
-        $("#etherpad").append(iframe);
-        $("#welcome").slideUp();
-      } catch (e) {
-        error("sign-in failure: " + e.toString());
-      }
+  socket.on('configuration', function(data) {
+    config = data;
+    configReceived.resolve();
+  });
+  $("#sign-in").submit(function() {
+    var username = $("#name").val();
+    if (!username)
       return false;
+    $("#welcome").slideUp(function() {
+      twilioDeviceReady.done(function() {
+        var conn = Twilio.Device.connect({agent: username});
+        config.users[config.id].username = username;
+        socket.emit('set-username', {value: username});
+        showEtherpad(username);
+        Twilio.Device.connect(function(conn) {
+          log("twilio device connect");
+          
+        });
+        Twilio.Device.disconnect(function(conn) {
+          errorAlert("Connection to Twilio lost.");
+          log("twilio device disconnect");
+        });
+      });
     });
+    return false;
   });
 });
 </script>
-<script src="http://static.twilio.com/libs/twiliojs/1.0/twilio.min.js"></script>
