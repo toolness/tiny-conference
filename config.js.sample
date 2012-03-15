@@ -1,0 +1,6 @@
+module.exports = {
+  account_sid: "your twilio account sid"
+, auth_token: "your twilio auth token"
+, app_sid: "your twilio app sid"
+, etherpad_url: "an etherpad lite instance to load, e.g. http://localhost:9001/p/tinyconference"
+};
