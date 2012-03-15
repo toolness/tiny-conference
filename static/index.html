@@ -229,7 +229,7 @@ $(window).ready(function() {
       error("twilio device error: " + err.message);
     });
   });
-  socket = io.connect('http://localhost:3000');
+  socket = io.connect();
   socket.on('disconnect', function() {
     if (!isUnloading)
       errorAlert("Connection to server lost.");
