@@ -14,6 +14,17 @@ Tiny Conference tries to solve the muting problem by making it easy for *anyone*
 
 ## Quick Start
 
+First, you'll want to set up a Twilio app with a Voice URL that points to an XML file containing the following:
+
+    <Response>
+    <Say>Joining a conference room</Say>
+    <Dial>
+    <Conference>MyRoom</Conference>
+    </Dial>
+    </Response>
+
+Then, run the following at a shell prompt:
+
     git clone git://github.com/toolness/tiny-conference.git
     cd tiny-conference
     npm install
