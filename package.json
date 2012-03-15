@@ -1,0 +1,15 @@
+{ "name": "tiny-conference"
+, "description": "conference w/ Twilio using an Etherpad as a back-channel."
+, "version": "0.1.0"
+, "private": true
+, "scripts" :
+  { "test" : "node_modules/.bin/mocha -R spec" }
+, "dependencies":
+  { "mocha": "0.14.x"
+  , "express": "2.5.x"
+  , "socket.io": "0.9.x"
+  , "up": "0.1.x"
+  }
+, "engines":
+  { "node":  "*" }
+}
