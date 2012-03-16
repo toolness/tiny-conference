@@ -56,32 +56,21 @@ io.sockets.on('connection', function(socket) {
     id: conn.id,
     value: infoForUser(conn)
   });
-  socket.on('set-username', function(data) {
-    conn.username = data.value;
-    socket.broadcast.emit('set-username', {
-      id: conn.id,
-      value: conn.username
-    });
-  });
-  socket.on('set-muted', function(data) {
+  socket.on('set-property', function(data) {
     if (data.target in connections) {
-      connections[data.target].muted = data.value;
-      socket.broadcast.emit('set-muted', {
+      connections[data.target][data.property] = data.value;
+      socket.broadcast.emit('set-property', {
         source: conn.id,
         target: data.target,
+        property: data.property,
         value: data.value
       });
     }
   });
-  socket.on('app-log', function(data) {
-    socket.broadcast.emit('app-log', {
+  socket.on('log', function(data) {
+    socket.broadcast.emit('log', {
       id: conn.id,
-      message: data.message
-    });
-  });
-  socket.on('app-error', function(data) {
-    socket.broadcast.emit('app-error', {
-      id: conn.id,
+      level: data.level,
       message: data.message
     });
   });
@@ -90,6 +79,5 @@ io.sockets.on('connection', function(socket) {
     socket.broadcast.emit('user-disconnected', {
       id: conn.id,
     });
-    console.log("DISCONNECT");
   });
 });

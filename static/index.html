@@ -89,7 +89,18 @@ _.templateSettings = {
   escape : /\{\{(.+?)\}\}/g
 };
 
-var User = Backbone.Model.extend({});
+var User = Backbone.Model.extend({
+  save: function(properties) {
+    for (var property in properties) {
+      this.set(property, properties[property]);
+      socket.emit('set-property', {
+        target: this.id,
+        property: property,
+        value: properties[property]
+      });
+    }
+  }
+});
 
 var Users = Backbone.Collection.extend({
   model: User
@@ -117,13 +128,7 @@ var UserRow = Backbone.View.extend({
   },
   toggleMuted: function() {
     var isMuted = this.$el.find("input.muted")[0].checked;
-    this.model.set("muted", isMuted);
-    console.log("TOGGLE MUTED", isMuted);
-    // TODO: Should this really be done by backbone.sync() or something?
-    socket.emit('set-muted', {
-      target: this.model.id,
-      value: isMuted
-    });
+    this.model.save({muted: isMuted});
   }
 });
 
@@ -150,17 +155,13 @@ var isUnloading = false,
     config,
     socket;
 
-function log(msg) {
-  if (socket)
-    socket.emit('app-log', {message: msg});
-  console.log(msg);
-}
-
-function error(msg) {
-  if (socket)
-    socket.emit('app-error', {message: msg});
-  console.error(msg);
-}
+['log', 'error'].forEach(function(level) {
+  window[level] = function(msg) {
+    if (socket)
+      socket.emit('log', {level: level, message: msg});
+    console[level](msg);
+  };
+});
 
 function errorAlert(text) {
   var alert = $("#templates .alert-error").clone()
@@ -197,7 +198,6 @@ function showEtherpad(username) {
 function setTwilioMuteState() {
   if (!twilioConnection)
     return;
-  console.log("setTwilioMuteState()", currentUser.get("muted"));
   if (currentUser.get("muted"))
     twilioConnection.mute();
   else
@@ -232,13 +232,9 @@ $(window).ready(function() {
     if (!isUnloading)
       errorAlert("Connection to server lost.");
   });
-  socket.on('app-log', function(data) {
-    console.log("from user", users.get(data.id).get("username"),
-                "(" + data.id + "):", data.message);
-  });
-  socket.on('app-error', function(data) {
-    console.error("from user", users.get(data.id).get("username"),
-                  "(" + data.id + "):", data.message);
+  socket.on('log', function(data) {
+    console[data.level]("from user", users.get(data.id).get("username"),
+                        "(" + data.id + "):", data.message);
   });
   socket.on('user-connected', function(data) {
     console.log("user-connected", data);
@@ -249,13 +245,9 @@ $(window).ready(function() {
     console.log("user-disconnected", data);
     users.remove(users.get(data.id));
   });
-  socket.on('set-username', function(data) {
-    console.log("set-username", data);
-    users.get(data.id).set("username", data.value);
-  });
-  socket.on('set-muted', function(data) {
-    console.log("set-muted", data);
-    users.get(data.target).set("muted", data.value);
+  socket.on('set-property', function(data) {
+    console.log("set-property", data);
+    users.get(data.target).set(data.property, data.value);
   });
   socket.on('configuration', function(data) {
     config = data;
@@ -274,8 +266,7 @@ $(window).ready(function() {
     $("#welcome").slideUp(function() {
       twilioDeviceReady.done(function() {
         twilioConnection = Twilio.Device.connect({agent: username});
-        currentUser.set("username", username);
-        socket.emit('set-username', {value: username});
+        currentUser.save({username: username});
         showEtherpad(username);
         Twilio.Device.connect(function(conn) {
           log("twilio device connect");
