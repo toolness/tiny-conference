@@ -89,8 +89,6 @@ _.templateSettings = {
   escape : /\{\{(.+?)\}\}/g
 };
 
-Backbone.sync = function() {};
-
 var User = Backbone.Model.extend({});
 
 var Users = Backbone.Collection.extend({
@@ -106,7 +104,6 @@ var UserRow = Backbone.View.extend({
   },
   initialize: function() {
     this.model.bind('change', this.render, this);
-    this.model.bind('destroy', this.remove, this);
   },
   render: function() {
     this.$el.html(this.template(this.model.toJSON()));
@@ -117,9 +114,6 @@ var UserRow = Backbone.View.extend({
       this.$el.removeClass("unknown-user");
     }
     return this;
-  },
-  remove: function() {
-    this.$el.remove();
   },
   toggleMuted: function() {
     var isMuted = this.$el.find("input.muted")[0].checked;
@@ -137,10 +131,14 @@ var UserRows = Backbone.View.extend({
   el: $("#user-rows"),
   initialize: function() {
     users.bind('add', this.addOne, this);
+    users.bind('remove', this.removeOne, this);
   },
   addOne: function(user) {
     var row = new UserRow({model: user});
-    this.$el.append(row.render().el);
+    this.$el.append(row.render().$el.addClass('user-row-' + user.id));
+  },
+  removeOne: function(user) {
+    this.$el.find('.user-row-' + user.id).remove();
   }
 });
 
@@ -249,9 +247,7 @@ $(window).ready(function() {
   });
   socket.on('user-disconnected', function(data) {
     console.log("user-disconnected", data);
-    var user = users.get(data.id);
-    users.remove(user);
-    user.destroy();
+    users.remove(users.get(data.id));
   });
   socket.on('set-username', function(data) {
     console.log("set-username", data);
