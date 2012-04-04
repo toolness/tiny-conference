@@ -290,10 +290,13 @@ $(window).ready(function() {
     var username = $("#name").val();
     if (!username)
       return false;
+    var userInfo = {username: username};
+    if (window.sessionStorage["html-sandbox"])
+      userInfo["html-sandbox"] = window.sessionStorage["html-sandbox"];
     $("#welcome").slideUp(function() {
       twilioDeviceReady.done(function() {
         twilioConnection = Twilio.Device.connect({agent: username});
-        currentUser.save({username: username});
+        currentUser.save(userInfo);
         showEtherpad(username);
         Twilio.Device.connect(function(conn) {
           log("twilio device connect");
@@ -316,7 +319,9 @@ window.webxrayWhenGogglesLoad = function(ui) {
   ui.commandManager.on("state-change", function() {
     if (currentUser) {
       var row = $(".user-row-" + currentUser.id);
-      row.find(".html-sandbox").trigger("maybe-content-changed");
+      var sandbox = row.find(".html-sandbox");
+      window.sessionStorage["html-sandbox"] = sandbox.html();
+      sandbox.trigger("maybe-content-changed");
     }
   });
 };
