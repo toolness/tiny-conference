@@ -43,6 +43,16 @@ input#name {
   white-space: pre;
   font-weight: bold;
 }
+
+.html-sandbox {
+  width: 196px;
+  height: 196px;
+}
+
+.html-sandbox > div {
+  width: 100%;
+  height: 100%;
+}
 </style>
 <div class="navbar navbar-fixed-top">
    <div class="navbar-inner">
@@ -72,6 +82,7 @@ input#name {
     <label class="checkbox">
       <input type="checkbox" class="muted"> Muted
     </label>
+    <div class="html-sandbox"></div>
   </div>
   <div class="alert alert-error fade in">
     <a class="close" data-dismiss="alert">&times;</a>
@@ -111,12 +122,14 @@ var UserRow = Backbone.View.extend({
   className: "user-row",
   template: _.template($("#templates .user-row").html()),
   events: {
-    "change input.muted": "toggleMuted"
+    "change input.muted": "toggleMuted",
+    "maybe-content-changed div.html-sandbox": "maybeSaveContent"
   },
   initialize: function() {
     this.model.bind('change', this.render, this);
   },
   render: function() {
+    var sandbox = this.$el.find(".html-sandbox")[0];
     this.$el.html(this.template(this.model.toJSON()));
     this.$el.find("input.muted")[0].checked = this.model.get("muted");
     if (this.model.get("username") == "UNKNOWN") {
@@ -124,11 +137,24 @@ var UserRow = Backbone.View.extend({
     } else {
       this.$el.removeClass("unknown-user");
     }
+    var modelHtmlSandbox = this.model.get("html-sandbox");
+    if (sandbox)
+      this.el.replaceChild(sandbox, this.$el.find(".html-sandbox")[0]);
+    sandbox = this.$el.find(".html-sandbox")[0];
+    if (modelHtmlSandbox != $(sandbox).html()) {
+      console.log("model", modelHtmlSandbox, sandbox);
+      $(sandbox).html(modelHtmlSandbox);
+    }
     return this;
   },
   toggleMuted: function() {
     var isMuted = this.$el.find("input.muted")[0].checked;
     this.model.save({muted: isMuted});
+  },
+  maybeSaveContent: function() {
+    var html = this.$el.find(".html-sandbox").html();
+    if (html != this.model.get("html-sandbox"))
+      this.model.save({"html-sandbox": html});
   }
 });
 
@@ -250,6 +276,7 @@ $(window).ready(function() {
     users.get(data.target).set(data.property, data.value);
   });
   socket.on('configuration', function(data) {
+    console.log("configuration", data);
     config = data;
     for (var id in config.users) {
       config.users[id].id = id;
@@ -284,4 +311,13 @@ $(window).ready(function() {
     return false;
   });
 });
+
+window.webxrayWhenGogglesLoad = function(ui) {
+  ui.commandManager.on("state-change", function() {
+    if (currentUser) {
+      var row = $(".user-row-" + currentUser.id);
+      row.find(".html-sandbox").trigger("maybe-content-changed");
+    }
+  });
+};
 </script>

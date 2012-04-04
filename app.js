@@ -20,7 +20,8 @@ var latestID = 0;
 function infoForUser(conn) {
   return {
     username: conn.username,
-    muted: conn.muted
+    muted: conn.muted,
+    "html-sandbox": conn["html-sandbox"]
   };
 }
 
@@ -39,7 +40,8 @@ io.sockets.on('connection', function(socket) {
     token: null,
     username: "UNKNOWN",
     id: latestID++,
-    muted: false
+    muted: false,
+    "html-sandbox": '<div style="background: lightgray; padding: 4px">This area can be edited by its owner with <a href="http://hackasaurus.org/goggles/" target="_blank">X-Ray Goggles</a>.</div>'
   };
 
   capability.allow_client_outgoing(config.app_sid);
