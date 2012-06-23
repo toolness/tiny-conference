@@ -49,6 +49,7 @@ var Editor = (function() {
     var newContent = codeMirror.getValue();
     if (newContent != state.content) {
       state.content = newContent;
+      state.cursor = codeMirror.getCursor();
       if (socket)
         socket.emit('set-editor-state', state);
     }
@@ -71,6 +72,7 @@ var Editor = (function() {
           currentTypist.removeClass("nobody-typing");
         }
         self.setState(state);
+        codeMirror.focus();
       });
       codeMirror = CodeMirror(options.source[0], {
         mode: "text/html",
@@ -88,6 +90,8 @@ var Editor = (function() {
     setState: function(newState) {
       state = newState;
       codeMirror.setValue(state.content);
+      if (state.cursor)
+        codeMirror.setCursor(state.cursor);
       startRefreshPreview();
     }
   };
