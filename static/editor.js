@@ -1,9 +1,12 @@
 var Editor = (function() {
   var state = {},
       iframe,
-      timeout,
+      previewTimeout,
+      otherUserTypingTimeout,
       previewArea = $("#preview"),
-      socket;
+      socket,
+      codeMirror,
+      users;
 
   function refreshPreview(sourceCode) {
     var x = 0,
@@ -52,24 +55,35 @@ var Editor = (function() {
     refreshPreview(state.content);
   }
   
-  var codeMirror = CodeMirror($("#source")[0], {
-    mode: "text/html",
-    theme: "default",
-    tabMode: "indent",
-    lineWrapping: true,
-    lineNumbers: true,
-    onChange: function() {
-      clearTimeout(timeout);
-      timeout = setTimeout(startRefreshPreview, 300);
-    }
-  });
-  
   var self = {
-    setSocket: function(newSocket) {
-      socket = newSocket;
+    init: function(options) {
+      var currentTypist = options.currentTypist;
+      users = options.users;
+      socket = options.socket;
       socket.on("editor-state-change", function(state) {
+        var user = users.get(state.lastChangedBy);
+        if (user) {
+          clearTimeout(otherUserTypingTimeout);
+          otherUserTypingTimeout = setTimeout(function() {
+            currentTypist.addClass("nobody-typing");
+          }, 2000);
+          $(".username", currentTypist).text(user.get("username"));
+          currentTypist.removeClass("nobody-typing");
+        }
         self.setState(state);
       });
+      codeMirror = CodeMirror(options.source[0], {
+        mode: "text/html",
+        theme: "default",
+        tabMode: "indent",
+        lineWrapping: true,
+        lineNumbers: true,
+        onChange: function() {
+          clearTimeout(previewTimeout);
+          previewTimeout = setTimeout(startRefreshPreview, 300);
+        }
+      });
+      self.setState(options.state);
     },
     setState: function(newState) {
       state = newState;
