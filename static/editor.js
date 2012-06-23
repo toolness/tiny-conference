@@ -60,7 +60,7 @@ var Editor = (function() {
     if (data.property == 'content')
       codeMirror.setValue(data.value);
     if (data.property == 'cursor')
-      codeMirror.setCursor(data.value);
+      codeMirror.setSelection(data.value.start, data.value.end);
     lastState[data.property] = data.value;
     codeMirror.focus();
   }
@@ -71,7 +71,10 @@ var Editor = (function() {
     
     var newState = {
       content: codeMirror.getValue(),
-      cursor: codeMirror.getCursor()
+      cursor: {
+        start: codeMirror.getCursor(true),
+        end: codeMirror.getCursor(false)
+      }
     };
     Object.keys(newState).forEach(function(property) {
       if (!_.isEqual(lastState[property], newState[property])) {
