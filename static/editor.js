@@ -52,9 +52,11 @@ var Editor = (function() {
     if (user) {
       clearTimeout(otherUserTypingTimeout);
       otherUserTypingTimeout = setTimeout(function() {
+        codeMirror.setOption("readOnly", false);
         currentTypist.addClass("nobody-typing");
       }, 2000);
       $(".username", currentTypist).text(user.get("username"));
+      codeMirror.setOption("readOnly", true);
       currentTypist.removeClass("nobody-typing");
     }
     if (data.property == 'content')
@@ -67,6 +69,9 @@ var Editor = (function() {
   
   setInterval(function resync() {
     if (!socket)
+      return;
+    
+    if (!currentTypist.hasClass("nobody-typing"))
       return;
     
     var newState = {
