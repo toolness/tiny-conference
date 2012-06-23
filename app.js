@@ -32,6 +32,11 @@ function getInfoForAllUsers() {
   return info;
 }
 
+var editorState = {
+  lastChangedBy: null,
+  content: "WATS UP YO"
+};
+
 io.sockets.on('connection', function(socket) {
   var capability = new TwilioCapability(config.account_sid,
                                         config.auth_token);
@@ -50,11 +55,18 @@ io.sockets.on('connection', function(socket) {
     token: conn.token,
     id: conn.id,
     etherpad_url: config.etherpad_url,
-    users: getInfoForAllUsers()
+    users: getInfoForAllUsers(),
+    editorState: editorState
   });
   socket.broadcast.emit('user-connected', {
     id: conn.id,
     value: infoForUser(conn)
+  });
+  socket.on('set-editor-state', function(state) {
+    state.lastChangedBy = conn.id;
+    editorState = state;
+    console.log("IT CHANGED", editorState);
+    socket.broadcast.emit('editor-state-change', state);
   });
   socket.on('set-property', function(data) {
     if (data.target in connections) {
