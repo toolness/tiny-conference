@@ -2,7 +2,8 @@ var Editor = (function() {
   var state = {},
       iframe,
       timeout,
-      previewArea = $("#preview");
+      previewArea = $("#preview"),
+      socket;
 
   function refreshPreview(sourceCode) {
     var x = 0,
@@ -45,8 +46,8 @@ var Editor = (function() {
     var newContent = codeMirror.getValue();
     if (newContent != state.content) {
       state.content = newContent;
-      if (self.socket)
-        self.socket.emit('set-editor-state', state);
+      if (socket)
+        socket.emit('set-editor-state', state);
     }
     refreshPreview(state.content);
   }
@@ -64,7 +65,12 @@ var Editor = (function() {
   });
   
   var self = {
-    socket: null,
+    setSocket: function(newSocket) {
+      socket = newSocket;
+      socket.on("editor-state-change", function(state) {
+        self.setState(state);
+      });
+    },
     setState: function(newState) {
       state = newState;
       codeMirror.setValue(state.content);

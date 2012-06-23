@@ -65,7 +65,6 @@ io.sockets.on('connection', function(socket) {
   socket.on('set-editor-state', function(state) {
     state.lastChangedBy = conn.id;
     editorState = state;
-    console.log("IT CHANGED", editorState);
     socket.broadcast.emit('editor-state-change', state);
   });
   socket.on('set-property', function(data) {
