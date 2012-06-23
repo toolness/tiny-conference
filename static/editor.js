@@ -77,6 +77,13 @@ var Editor = (function() {
       }
     };
     Object.keys(newState).forEach(function(property) {
+      if (property == "cursor" &&
+          _.isEqual(newState[property], {
+            start: {line: 0, ch: 0},
+            end: {line: 0, ch: 0}
+          }))
+        // Weird phantom cursor change, ignore it.
+        return;
       if (!_.isEqual(lastState[property], newState[property])) {
         socket.emit('set-editor-property', {
           property: property,
@@ -85,7 +92,7 @@ var Editor = (function() {
         lastState[property] = newState[property];
       }
     });
-  }, 1000);
+  }, 500);
   
   var self = {
     init: function(options) {
