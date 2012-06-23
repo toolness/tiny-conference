@@ -1,17 +1,19 @@
 var Editor = (function() {
-  var state = {},
-      iframe,
+  var iframe,
+      currentTypist,
       previewTimeout,
       otherUserTypingTimeout,
       previewArea = $("#preview"),
       socket,
       codeMirror,
-      users;
+      users,
+      lastState = {};
 
-  function refreshPreview(sourceCode) {
+  function refreshPreview() {
     var x = 0,
         y = 0,
-        doc, wind;
+        doc, wind,
+        sourceCode = codeMirror.getValue();
     
     if (iframe) {
       doc = $(iframe).contents()[0];
@@ -45,35 +47,49 @@ var Editor = (function() {
     wind.scroll(x, y);
   }
   
-  function startRefreshPreview() {
-    var newContent = codeMirror.getValue();
-    if (newContent != state.content) {
-      state.content = newContent;
-      state.cursor = codeMirror.getCursor();
-      if (socket)
-        socket.emit('set-editor-state', state);
+  function setEditorProperty(data) {
+    var user = users.get(data.source);
+    if (user) {
+      clearTimeout(otherUserTypingTimeout);
+      otherUserTypingTimeout = setTimeout(function() {
+        currentTypist.addClass("nobody-typing");
+      }, 2000);
+      $(".username", currentTypist).text(user.get("username"));
+      currentTypist.removeClass("nobody-typing");
     }
-    refreshPreview(state.content);
+    if (data.property == 'content')
+      codeMirror.setValue(data.value);
+    if (data.property == 'cursor')
+      codeMirror.setCursor(data.value);
+    lastState[data.property] = data.value;
+    codeMirror.focus();
   }
+  
+  setInterval(function resync() {
+    if (!socket)
+      return;
+    
+    var newState = {
+      content: codeMirror.getValue(),
+      cursor: codeMirror.getCursor()
+    };
+    Object.keys(newState).forEach(function(property) {
+      if (!_.isEqual(lastState[property], newState[property])) {
+        socket.emit('set-editor-property', {
+          property: property,
+          value: newState[property]
+        });
+        lastState[property] = newState[property];
+      }
+    });
+  }, 1000);
   
   var self = {
     init: function(options) {
-      var currentTypist = options.currentTypist;
+      currentTypist = options.currentTypist;
       users = options.users;
       socket = options.socket;
-      socket.on("editor-state-change", function(state) {
-        var user = users.get(state.lastChangedBy);
-        if (user) {
-          clearTimeout(otherUserTypingTimeout);
-          otherUserTypingTimeout = setTimeout(function() {
-            currentTypist.addClass("nobody-typing");
-          }, 2000);
-          $(".username", currentTypist).text(user.get("username"));
-          currentTypist.removeClass("nobody-typing");
-        }
-        self.setState(state);
-        codeMirror.focus();
-      });
+      socket.on("set-editor-property", setEditorProperty);
       codeMirror = CodeMirror(options.source[0], {
         mode: "text/html",
         theme: "default",
@@ -82,17 +98,15 @@ var Editor = (function() {
         lineNumbers: true,
         onChange: function() {
           clearTimeout(previewTimeout);
-          previewTimeout = setTimeout(startRefreshPreview, 300);
+          previewTimeout = setTimeout(refreshPreview, 300);
         }
       });
-      self.setState(options.state);
-    },
-    setState: function(newState) {
-      state = newState;
-      codeMirror.setValue(state.content);
-      if (state.cursor)
-        codeMirror.setCursor(state.cursor);
-      startRefreshPreview();
+      Object.keys(options.state).forEach(function(property) {
+        setEditorProperty({
+          property: property,
+          value: options.state[property]
+        });
+      });
     }
   };
   

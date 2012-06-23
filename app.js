@@ -33,7 +33,6 @@ function getInfoForAllUsers() {
 }
 
 var editorState = {
-  lastChangedBy: null,
   content: "WATS UP YO"
 };
 
@@ -62,10 +61,13 @@ io.sockets.on('connection', function(socket) {
     id: conn.id,
     value: infoForUser(conn)
   });
-  socket.on('set-editor-state', function(state) {
-    state.lastChangedBy = conn.id;
-    editorState = state;
-    socket.broadcast.emit('editor-state-change', state);
+  socket.on('set-editor-property', function(data) {
+    editorState[data.property] = data.value;
+    socket.broadcast.emit('set-editor-property', {
+      source: conn.id,
+      property: data.property,
+      value: data.value
+    });
   });
   socket.on('set-property', function(data) {
     if (data.target in connections) {
