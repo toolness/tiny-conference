@@ -283,5 +283,11 @@ $(window).ready(function() {
     });
     return false;
   });
+  var autoLoginRE = /autologin=([A-Za-z0-9]+)/;
+  var autoLoginMatch = window.location.search.match(autoLoginRE);
+  if (autoLoginMatch) {
+    $("#name").val(autoLoginMatch[1]);
+    $("#sign-in").submit();
+  }
 });
 </script>
