@@ -44,6 +44,14 @@ input#name {
   font-weight: bold;
 }
 
+html:not(.logged-in) #editor-ui {
+  display: none;
+}
+
+html.logged-in #editor-ui {
+  display: block;
+}
+
 #editor {
   font-size: 0;
   border: 1px solid black;
@@ -117,15 +125,17 @@ input#name {
       <button type="submit" class="btn">Sign in</button>
     </form>
   </section>
-  <div class="alert nobody-typing" id="current-typist">
-    <span class="nobody">Nobody else is typing. Go for it!</span>
-    <span class="somebody">User <strong class="username"></strong> is
-      currently typing. Please wait.</span>
+  <div id="editor-ui">
+    <div class="alert nobody-typing" id="current-typist">
+      <span class="nobody">Nobody else is typing. Go for it!</span>
+      <span class="somebody">User <strong class="username"></strong> is
+        currently typing. Please wait.</span>
+    </div>
+    <section id="editor">
+      <div id="source"></div>
+      <div id="preview"></div>
+    </section>
   </div>
-  <section id="editor">
-    <div id="source"></div>
-    <div id="preview"></div>
-  </section>
 </div>
 <div id="templates" style="display: none">
   <div class="user-row">
@@ -312,13 +322,6 @@ $(window).ready(function() {
     }
     delete config.users;
     currentUser = users.get(config.id);
-    Editor.init({
-      source: $("#source"),
-      currentTypist: $("#current-typist"),
-      state: config.editorState,
-      socket: socket,
-      users: users
-    });
     configReceived.resolve();
   });
   $("#sign-in").submit(function() {
@@ -329,6 +332,16 @@ $(window).ready(function() {
       twilioDeviceReady.done(function() {
         twilioConnection = Twilio.Device.connect({agent: username});
         currentUser.save({username: username});
+        $("html").addClass("logged-in");
+        Editor.init({
+          source: $("#source"),
+          preview: $("#preview"),
+          currentTypist: $("#current-typist"),
+          state: config.editorState,
+          socket: socket,
+          users: users
+        });
+        
         Twilio.Device.connect(function(conn) {
           log("twilio device connect");
           setTwilioMuteState();

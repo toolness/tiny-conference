@@ -3,7 +3,7 @@ var Editor = (function() {
       currentTypist,
       previewTimeout,
       otherUserTypingTimeout,
-      previewArea = $("#preview"),
+      previewArea,
       socket,
       codeMirror,
       users,
@@ -97,6 +97,7 @@ var Editor = (function() {
   var self = {
     init: function(options) {
       currentTypist = options.currentTypist;
+      previewArea = options.preview;
       users = options.users;
       socket = options.socket;
       socket.on("set-editor-property", setEditorProperty);
