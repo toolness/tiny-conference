@@ -34,7 +34,7 @@ function getInfoForAllUsers() {
 }
 
 var editorState = {
-  content: fs.readFileSync(__dirname + '/static/default-content.html', 'utf8')
+  content: fs.readFileSync(relpath('/static/default-content.html'), 'utf8')
 };
 
 io.sockets.on('connection', function(socket) {
