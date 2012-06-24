@@ -1,7 +1,8 @@
 var express = require('express'),
     path = require('path'),
     TwilioCapability = require('./lib/twilio-capability'),
-    config = require('./config');
+    config = require('./config'),
+    fs = require('fs');
 
 var app = express.createServer();
 var io = require('socket.io').listen(app);
@@ -33,7 +34,7 @@ function getInfoForAllUsers() {
 }
 
 var editorState = {
-  content: "WATS UP YO"
+  content: fs.readFileSync(__dirname + '/static/default-content.html', 'utf8')
 };
 
 io.sockets.on('connection', function(socket) {
