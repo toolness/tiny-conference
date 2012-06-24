@@ -153,7 +153,7 @@ html.logged-in #editor-ui {
   <div class="alert alert-error fade in">
     <a class="close" data-dismiss="alert">&times;</a>
     <strong><span class="message"></span></strong>
-    You should probably reload the page.
+    Try reloading the page in a bit.
   </div>
 </div>
 <script src="jquery.min.js"></script>
@@ -311,7 +311,18 @@ $(window).ready(function() {
     });
   });
   socket = io.connect();
+  socket.on('go-away', function() {
+    errorAlert('This app is not accepting new participants.');
+    $("#welcome").hide();
+    isUnloading = true;
+  });
   socket.on('disconnect', function() {
+    socket = null;
+    try {
+      Twilio.Device.disconnectAll();
+    } catch(e) {
+      log("exception on Twilio.Device.disconnectAll(): " + e);
+    }
     if (!isUnloading)
       errorAlert("Connection to server lost.");
   });

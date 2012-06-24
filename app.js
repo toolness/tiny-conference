@@ -13,8 +13,39 @@ function relpath(pathname) {
 
 app.use(express.static(relpath('static')));
 
+app.get('/admin', function(req, res) {
+  res.send(fs.readFileSync(relpath('static/admin.html'), 'utf8'));
+});
+
+app.get('/status', function(req, res) {
+  res.send({
+    acceptingNewConnections: acceptingNewConnections,
+    numConnections: Object.keys(connections).length
+  });
+});
+
+app.post('/begin', function(req, res) {
+  if (config.admin_key && req.header('x-admin-key') != config.admin_key)
+    return res.send(403);
+  acceptingNewConnections = true;
+  res.send({message: "app enabled."});
+});
+
+app.post('/end', function(req, res) {
+  if (config.admin_key && req.header('x-admin-key') != config.admin_key)
+    return res.send(403);
+  Object.keys(connections).forEach(function(id) {
+    var conn = connections[id];
+    delete connections[id];
+    conn.socket.disconnect();
+  });
+  acceptingNewConnections = false;
+  res.send({message: "app disabled."});
+});
+
 module.exports = app;
 
+var acceptingNewConnections = true;
 var connections = {};
 var latestID = 0;
 
@@ -38,13 +69,20 @@ var editorState = {
 };
 
 io.sockets.on('connection', function(socket) {
+  if (!acceptingNewConnections) {
+    socket.emit('go-away', {});
+    socket.disconnect();
+    return;
+  }
+  
   var capability = new TwilioCapability(config.account_sid,
                                         config.auth_token);
   var conn = {
     token: null,
     username: "UNKNOWN",
     id: latestID++,
-    muted: false
+    muted: false,
+    socket: socket
   };
 
   capability.allow_client_outgoing(config.app_sid);

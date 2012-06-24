@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Admin</title>
+<link rel="stylesheet" href="/bootstrap/css/bootstrap.css">
+<style>
+.container {
+  margin-top: 20px;
+}
+
+input[type="text"] {
+  width: 100%;
+}
+
+body:not(.app-is-enabled) .show-if-enabled,
+body.app-is-enabled .show-if-disabled {
+  display: none;
+}
+</style>
+<div class="container" style="display: none">
+  <div class="hero-unit">
+    <h1>Admin</h1>
+    <p class="show-if-enabled">The app is currently <strong>enabled</strong> 
+      with <span class="num-connections"></span> active connections.</p>
+    <p class="show-if-disabled">The app is currently 
+      <strong>disabled</strong>.</p>
+    <p>To change this, just enter your admin key and click the button.</p>
+    <form>
+      <input type="text" id="admin-key" placeholder="Enter admin key here">
+    </form>
+    <button class="btn btn-success show-if-disabled">Enable App</button>
+    <button class="btn btn-danger show-if-enabled">Disable App</button>
+  </div>
+  <div class="alert alert-error" style="display: none">
+    An error occurred. Perhaps you used the wrong admin key?
+  </div>
+  <div class="alert alert-success" style="display: none">
+    Success! The app is now
+    <strong class="show-if-enabled">disabled</strong><strong 
+     class="show-if-disabled">enabled</strong>.
+  </div>
+</div> <!-- /container -->
+<script src="jquery.min.js"></script>
+<script>
+$(window).ready(function() {
+  jQuery.getJSON('/status', function(status) {
+    $("body").toggleClass("app-is-enabled", status.acceptingNewConnections);
+    $(".num-connections").text(status.numConnections);
+    $(".container").show();
+  });
+  
+  function post(path) {
+    $(".hero-unit").slideUp();
+    jQuery.ajax({
+      type: 'POST',
+      url: path,
+      headers: {
+        'X-Admin-Key': $("#admin-key").val()
+      },
+      success: function() {
+        $(".alert-success").fadeIn();
+      },
+      error: function() {
+        $(".alert-error").fadeIn();
+      }
+    });
+  }
+  
+  $(".btn-success").click(function() {
+    post('/begin');
+  });
+  $(".btn-danger").click(function() {
+    post('/end');
+  });
+});
+</script>
